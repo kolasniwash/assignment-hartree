@@ -2,11 +2,25 @@ from typing import List
 import pandas as pd
 
 def merge_dfs(left_df: pd.DataFrame, right_df: pd.DataFrame, key: str):
+    """
+    Merge two dataframes.
+    :param left_df:
+    :param right_df:
+    :param key:
+    :return: Merged dataframe.
+    """
     return left_df.merge(right_df, how="left", left_on=key, right_on=key)
 
 
 def base_group_set(df: pd.DataFrame, group_set: List[str], total_method="count") -> pd.DataFrame:
+    """
+    Calculate base group aggregations for rating filed.
 
+    :param df: Dataframe. Input dataframe.
+    :param group_set: List. Fields to group by.
+    :param total_method: Str. Aggregation for out of group fields.
+    :return: dataframe grouped by group_set
+    """
     grouping_set_items = {"legal_entity", "counter_party", "tier"}
     out_of_group_items = set(group_set).symmetric_difference(grouping_set_items)
 
@@ -17,6 +31,14 @@ def base_group_set(df: pd.DataFrame, group_set: List[str], total_method="count")
 
 
 def sum_status(df: pd.DataFrame, group_set: List[str], status: str) -> pd.DataFrame:
+    """
+    Calculate aggregate of status field.
+
+    :param df: Dataframe
+    :param group_set: List. Fields to group by.
+    :param status: Str. One of ARAP, ACCR
+    :return: Dataframe grouped by grouping set.
+    """
 
     if status not in ["ARAP", "ACCR"]:
         raise ValueError("Status must be one of ARAP, ACCR")
@@ -27,10 +49,20 @@ def sum_status(df: pd.DataFrame, group_set: List[str], status: str) -> pd.DataFr
 
 
 def union_datasets(views: List[pd.DataFrame]) -> pd.DataFrame:
+    """
+    Stack multiple dataframes of same schema.
+    :param views:
+    :return:
+    """
     return pd.concat(views, axis=0)
 
 
 def run(grouping_sets: List[List[str]]) -> pd.DataFrame:
+    """
+    Main method. Load & merge datasets on counter_party field. Calculate group aggregates.
+    :param grouping_sets: List of aggregation fields.
+    :return: Dataframe
+    """
 
     left_df = pd.read_csv("../data/dataset1.csv")
     right_df = pd.read_csv("../data/dataset2.csv")
@@ -47,11 +79,8 @@ def run(grouping_sets: List[List[str]]) -> pd.DataFrame:
             .join(ACCR, group_set, how="left") \
             .fillna(0) \
             .reset_index()
-        print("------------")
-        print(view)
         views.append(view)
 
-    print("------------")
     return union_datasets(views)
 
 
@@ -65,6 +94,5 @@ if __name__ == "__main__":
         ["counter_party"]
     ]
 
-    # print(df_merged)
-    print("-----------")
-    print(run(grouping_sets))
+    result = run(grouping_sets)
+    result.to_csv("final_output.csv")
